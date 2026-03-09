@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQSD Network</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; color:#fff; font-family:Arial,sans-serif; }
+.header { background:#000; border-bottom:1px solid #00e5ff22; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+.logo { font-size:28px; font-weight:900; color:#00e5ff; letter-spacing:4px; }
+.net-badge { font-size:12px; color:#00e5ff; border:1px solid #00e5ff44; padding:4px 12px; border-radius:100px; }
+.stats-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#111; border-bottom:1px solid #00e5ff22; }
+.stat { padding:16px; text-align:center; background:#050508; }
+.stat-num { font-size:22px; font-weight:900; color:#00e5ff; }
+.stat-label { font-size:11px; color:#666; margin-top:4px; }
+.main { max-width:700px; margin:0 auto; padding:24px 16px; }
+.card { background:#0d0d14; border:1px solid #ffffff11; border-radius:16px; padding:24px; margin-bottom:16px; }
+.card-title { font-size:16px; font-weight:700; color:#00e5ff; margin-bottom:16px; }
+input { width:100%; background:#000; border:1px solid #ffffff22; border-radius:10px; padding:12px 16px; color:#fff; font-size:14px; margin-bottom:12px; font-family:Arial,sans-serif; }
+input:focus { outline:none; border-color:#00e5ff55; }
+button { width:100%; background:#00e5ff; color:#000; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:900; cursor:pointer; font-family:Arial,sans-serif; }
+button:hover { background:#00ccee; }
+.btn-outline { background:transparent; color:#00e5ff; border:1px solid #00e5ff; margin-top:8px; }
+.msg { padding:12px 16px; border-radius:10px; font-size:14px; margin-top:12px; display:none; }
+.msg.success { background:#00e5ff11; border:1px solid #00e5ff44; color:#00e5ff; }
+.msg.error { background:#ff000011; border:1px solid #ff000044; color:#ff4444; }
+.hash-display { font-size:11px; color:#444; font-family:monospace; word-break:break-all; margin:12px 0; min-height:40px; }
+.progress-bar { height:4px; background:#111; border-radius:100px; margin:12px 0; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#00e5ff,#0077ff); border-radius:100px; width:0%; transition:width 0.3s; }
+.address-box { background:#000; border:1px solid #ffffff11; border-radius:10px; padding:12px 16px; font-size:12px; color:#00e5ff; font-family:monospace; word-break:break-all; margin:12px 0; }
+.peer-item { padding:6px 0; border-bottom:1px solid #ffffff05; font-size:12px; color:#666; }
+@media(max-width:500px) { .stats-bar { grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">IQSD</div>
+  <div class="net-badge">⬤ الشبكة تعمل</div>
+</div>
+<div class="stats-bar">
+  <div class="stat"><div class="stat-num" id="s-blocks">-</div><div class="stat-label">البلوكات</div></div>
+  <div class="stat"><div class="stat-num" id="s-reward">-</div><div class="stat-label">المكافأة</div></div>
+  <div class="stat"><div class="stat-num" id="s-diff">-</div><div class="stat-label">الصعوبة</div></div>
+  <div class="stat"><div class="stat-num" id="s-peers">-</div><div class="stat-label">العقد</div></div>
+</div>
+<div class="main">
+  <div class="card">
+    <div class="card-title">🔑 محفظتي</div>
+    <div id="walletSection">
+      <input type="text" id="pubkeyInput" placeholder="أدخل أي كلمة سرية (مثل: hussain2024)" />
+      <button onclick="createWallet()">إنشاء محفظة</button>
+    </div>
+    <div id="walletInfo" style="display:none">
+      <div style="font-size:13px;color:#666;margin-bottom:6px;">عنوان محفظتك:</div>
+      <div class="address-box" id="myAddress"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+        <div>
+          <div style="font-size:13px;color:#666;">رصيدك</div>
+          <div style="font-size:28px;font-weight:900;color:#00e5ff;" id="myBalance">0</div>
+          <div style="font-size:12px;color:#666;">IQSD</div>
+        </div>
+        <button onclick="refreshBalance()" style="width:auto;padding:10px 20px;font-size:13px;">تحديث</button>
+      </div>
+      <button class="btn-outline" onclick="logout()">تغيير المحفظة</button>
+    </div>
+    <div class="msg" id="walletMsg"></div>
+  </div>
+  <div class="card" id="miningCard" style="display:none">
+    <div class="card-title">⛏️ التعدين</div>
+    <div style="text-align:center;padding:16px;">
+      <div id="miningStatusText" style="font-size:15px;color:#666;">جاهز للتعدين</div>
+      <div class="hash-display" id="hashDisplay">-</div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div style="font-size:13px;color:#666;margin-top:8px;" id="miningSpeed"></div>
+    </div>
+    <button id="mineBtn" onclick="toggleMining()">▶ ابدأ التعدين</button>
+    <div class="msg" id="miningMsg"></div>
+  </div>
+  <div class="card" id="transferCard" style="display:none">
+    <div class="card-title">💸 تحويل IQSD</div>
+    <input type="text" id="receiverInput" placeholder="عنوان المستلم (IQSD...)" />
+    <input type="number" id="amountInput" placeholder="المبلغ" step="0.0001" min="0" />
+    <div style="font-size:12px;color:#666;margin-bottom:12px;">العمولة: 0.1% للمعدن</div>
+    <button onclick="sendTransfer()">إرسال</button>
+    <div class="msg" id="transferMsg"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🌐 إضافة عقدة</div>
+    <input type="text" id="peerInput" placeholder="رابط العقدة مثل: http://192.168.1.1:5000" />
+    <button onclick="addPeer()">اتصال</button>
+    <div id="peersList" style="margin-top:12px;"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🦊 إضافة للمحفظة الخارجية</div>
+    <div style="font-size:13px;color:#666;margin-bottom:16px;">أضف IQSD لـ Metamask أو Trust Wallet:</div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">اسم الشبكة: <span style="color:#00e5ff">IQSD Network</span></div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">RPC URL: <span style="color:#00e5ff" id="rpcUrl">-</span></div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">Chain ID: <span style="color:#00e5ff">19861</span></div>
+    <div style="font-size:12px;color:#aaa;margin-bottom:16px;">الرمز: <span style="color:#00e5ff">IQSD</span></div>
+    <button class="btn-outline" onclick="copyRpc()">نسخ RPC URL</button>
+  </div>
+</div>
+<script>
+let myAddress = localStorage.getItem('iqsd_address') || '';
+let mining = false;
+let hashCount = 0;
+let startTime = 0;
+
+window.onload = () => {
+  loadStats();
+  loadPeers();
+  document.getElementById('rpcUrl').textContent = window.location.origin + '/rpc';
+  if (myAddress) showWallet();
+  setInterval(loadStats, 10000);
+};
+
+async function loadStats() {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    document.getElementById('s-blocks').textContent = d.blocks || 0;
+    document.getElementById('s-reward').textContent = (d.reward || 50).toFixed(2);
+    document.getElementById('s-diff').textContent = d.difficulty || 4;
+    document.getElementById('s-peers').textContent = d.peers || 0;
+  } catch(e) {}
+}
+
+async function createWallet() {
+  const pk = document.getElementById('pubkeyInput').value.trim();
+  if (!pk) return showMsg('walletMsg', 'أدخل كلمة سرية!', false);
+  try {
+    const r = await fetch('/api/wallet/create', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({public_key:pk})});
+    const d = await r.json();
+    if (d.success) {
+      myAddress = d.address;
+      localStorage.setItem('iqsd_address', myAddress);
+      showWallet();
+      showMsg('walletMsg', 'تم إنشاء المحفظة!', true);
+    } else showMsg('walletMsg', d.error, false);
+  } catch(e) { showMsg('walletMsg', 'خطأ في الاتصال', false); }
+}
+
+function showWallet() {
+  document.getElementById('walletSection').style.display = 'none';
+  document.getElementById('walletInfo').style.display = 'block';
+  document.getElementById('miningCard').style.display = 'block';
+  document.getElementById('transferCard').style.display = 'block';
+  document.getElementById('myAddress').textContent = myAddress;
+  refreshBalance();
+}
+
+async function refreshBalance() {
+  if (!myAddress) return;
+  try {
+    const r = await fetch('/api/wallet/' + myAddress);
+    const d = await r.json();
+    document.getElementById('myBalance').textContent = (d.balance||0).toFixed(4);
+  } catch(e) {}
+}
+
+function logout() {
+  myAddress = '';
+  localStorage.removeItem('iqsd_address');
+  document.getElementById('walletSection').style.display = 'block';
+  document.getElementById('walletInfo').style.display = 'none';
+  document.getElementById('miningCard').style.display = 'none';
+  document.getElementById('transferCard').style.display = 'none';
+}
+
+function toggleMining() {
+  if (mining) { mining = false; document.getElementById('mineBtn').textContent = '▶ ابدأ التعدين'; document.getElementById('miningStatusText').style.color='#666'; document.getElementById('miningStatusText').textContent='متوقف'; }
+  else startMining();
+}
+
+async function startMining() {
+  mining = true; hashCount = 0; startTime = Date.now();
+  document.getElementById('mineBtn').textContent = '⏹ إيقاف التعدين';
+  document.getElementById('miningStatusText').textContent = 'جاري التعدين...';
+  document.getElementById('miningStatusText').style.color = '#00e5ff';
+  try {
+    const r = await fetch('/api/mining/challenge');
+    const challenge = await r.json();
+    mineBlock(challenge);
+  } catch(e) { mining=false; showMsg('miningMsg','خطأ في الاتصال',false); }
+}
+
+function simpleHash(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h<<5)+h)+str.charCodeAt(i);
+  const hex = (Math.abs(h)>>>0).toString(16).padStart(8,'0');
+  return (hex.repeat(8)).substring(0,64);
+}
+
+function mineBlock(challenge) {
+  if (!mining) return;
+  const { prev_hash, difficulty, target } = challenge;
+  let nonce = Math.floor(Math.random()*1000000);
+  function tryHash() {
+    if (!mining) return;
+    for (let i=0;i<500;i++) {
+      nonce++; hashCount++;
+      const hash = simpleHash(prev_hash+nonce+myAddress);
+      document.getElementById('hashDisplay').textContent = hash;
+      const elapsed = (Date.now()-startTime)/1000;
+      document.getElementById('miningSpeed').textContent = Math.floor(hashCount/elapsed).toLocaleString()+' hash/s';
+      document.getElementById('progressFill').style.width = (100-(parseInt(hash.substring(0,4),16)/65535)*100)+'%';
+      if (hash.startsWith(target)) { submitFoundBlock(nonce,hash,challenge); return; }
+    }
+    setTimeout(tryHash,0);
+  }
+  tryHash();
+}
+
+async function submitFoundBlock(nonce,hash,challenge) {
+  try {
+    const r = await fetch('/api/mining/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({miner_address:myAddress,nonce,hash})});
+    const d = await r.json();
+    if (d.success) { showMsg('miningMsg','🎉 '+d.message,true); refreshBalance(); }
+    setTimeout(()=>startMining(),1000);
+  } catch(e) {}
+}
+
+async function sendTransfer() {
+  const receiver = document.getElementById('receiverInput').value.trim();
+  const amount = parseFloat(document.getElementById('amountInput').value);
+  if (!receiver||!amount) return showMsg('transferMsg','أدخل البيانات كاملة',false);
+  try {
+    const r = await fetch('/api/transfer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender:myAddress,receiver,amount})});
+    const d = await r.json();
+    showMsg('transferMsg',d.success?d.message:d.error,d.success);
+    if(d.success) refreshBalance();
+  } catch(e) { showMsg('transferMsg','خطأ في الاتصال',false); }
+}
+
+async function addPeer() {
+  const url = document.getElementById('peerInput').value.trim();
+  if (!url) return;
+  try {
+    await fetch('/api/peer/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    loadPeers();
+    document.getElementById('peerInput').value='';
+  } catch(e) {}
+}
+
+async function loadPeers() {
+  try {
+    const r = await fetch('/api/peer/peers');
+    const d = await r.json();
+    const list = document.getElementById('peersList');
+    list.innerHTML = d.peers&&d.peers.length ? d.peers.map(p=>`<div class="peer-item">🟢 ${p}</div>`).join('') : '<div style="color:#444;font-size:12px;">لا يوجد عقد متصلة بعد</div>';
+  } catch(e) {}
+}
+
+function copyRpc() {
+  navigator.clipboard.writeText(window.location.origin+'/rpc');
+  alert('تم النسخ!');
+}
+
+function showMsg(id,text,success) {
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=text; el.className='msg '+(success?'success':'error'); el.style.display='block';
+  setTimeout(()=>el.style.display='none',4000);
+}
+</script>
+</body>
+</html>
