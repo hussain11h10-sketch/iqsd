@@ -17,18 +17,21 @@ body { background:#000; color:#fff; font-family:Arial,sans-serif; }
 .main { max-width:700px; margin:0 auto; padding:24px 16px; }
 .card { background:#0d0d14; border:1px solid #ffffff11; border-radius:16px; padding:24px; margin-bottom:16px; }
 .card-title { font-size:16px; font-weight:700; color:#00e5ff; margin-bottom:16px; }
-input { width:100%; background:#000; border:1px solid #ffffff22; border-radius:10px; padding:12px 16px; color:#fff; font-size:14px; margin-bottom:12px; font-family:Arial,sans-serif; }
+input { width:100%; background:#000; border:1px solid #ffffff22; border-radius:10px; padding:12px 16px; color:#fff; font-size:14px; margin-bottom:12px; font-family:monospace; }
 input:focus { outline:none; border-color:#00e5ff55; }
-button { width:100%; background:#00e5ff; color:#000; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:900; cursor:pointer; font-family:Arial,sans-serif; }
+button { width:100%; background:#00e5ff; color:#000; border:none; border-radius:10px; padding:14px; font-size:15px; font-weight:900; cursor:pointer; font-family:Arial,sans-serif; margin-bottom:8px; }
 button:hover { background:#00ccee; }
-.btn-outline { background:transparent; color:#00e5ff; border:1px solid #00e5ff; margin-top:8px; }
-.msg { padding:12px 16px; border-radius:10px; font-size:14px; margin-top:12px; display:none; }
+.btn-outline { background:transparent; color:#00e5ff; border:1px solid #00e5ff; }
+.btn-red { background:#ff4444; color:#fff; }
+.msg { padding:12px 16px; border-radius:10px; font-size:14px; margin-top:8px; display:none; }
 .msg.success { background:#00e5ff11; border:1px solid #00e5ff44; color:#00e5ff; }
 .msg.error { background:#ff000011; border:1px solid #ff000044; color:#ff4444; }
-.hash-display { font-size:11px; color:#444; font-family:monospace; word-break:break-all; margin:12px 0; min-height:40px; }
-.progress-bar { height:4px; background:#111; border-radius:100px; margin:12px 0; overflow:hidden; }
-.progress-fill { height:100%; background:linear-gradient(90deg,#00e5ff,#0077ff); border-radius:100px; width:0%; transition:width 0.3s; }
-.address-box { background:#000; border:1px solid #ffffff11; border-radius:10px; padding:12px 16px; font-size:12px; color:#00e5ff; font-family:monospace; word-break:break-all; margin:12px 0; }
+.key-box { background:#000; border:1px solid #ff444444; border-radius:10px; padding:12px 16px; font-size:10px; color:#ff8888; font-family:monospace; word-break:break-all; margin:8px 0; }
+.address-box { background:#000; border:1px solid #ffffff11; border-radius:10px; padding:12px 16px; font-size:11px; color:#00e5ff; font-family:monospace; word-break:break-all; margin:8px 0; }
+.warning { background:#ff440011; border:1px solid #ff444444; border-radius:10px; padding:12px; font-size:13px; color:#ff8888; margin:8px 0; }
+.hash-display { font-size:11px; color:#444; font-family:monospace; word-break:break-all; margin:12px 0; min-height:36px; }
+.progress-bar { height:4px; background:#111; border-radius:100px; margin:8px 0; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#00e5ff,#0077ff); border-radius:100px; width:0%; }
 .peer-item { padding:6px 0; border-bottom:1px solid #ffffff05; font-size:12px; color:#666; }
 @media(max-width:500px) { .stats-bar { grid-template-columns:repeat(2,1fr); } }
 </style>
@@ -45,67 +48,91 @@ button:hover { background:#00ccee; }
   <div class="stat"><div class="stat-num" id="s-peers">-</div><div class="stat-label">العقد</div></div>
 </div>
 <div class="main">
+
+  <!-- المحفظة -->
   <div class="card">
     <div class="card-title">🔑 محفظتي</div>
-    <div id="walletSection">
-      <input type="text" id="pubkeyInput" placeholder="أدخل أي كلمة سرية (مثل: hussain2024)" />
-      <button onclick="createWallet()">إنشاء محفظة</button>
+    <div id="noWallet">
+      <button onclick="generateWallet()">✨ توليد محفظة جديدة</button>
+      <div style="text-align:center;color:#444;font-size:13px;margin:8px 0;">أو</div>
+      <input type="text" id="importKey" placeholder="أدخل مفتاحك الخاص للاستيراد" />
+      <button class="btn-outline" onclick="importWallet()">استيراد محفظة</button>
+    </div>
+    <div id="newWalletAlert" style="display:none">
+      <div class="warning">⚠️ احفظ مفتاحك الخاص الآن! لن يظهر مرة ثانية!</div>
+      <div style="font-size:12px;color:#666;margin:8px 0;">🔴 مفتاحك الخاص (لا تشاركه مع أحد!):</div>
+      <div class="key-box" id="privateKeyDisplay"></div>
+      <button onclick="copyPrivateKey()" class="btn-outline">📋 نسخ المفتاح الخاص</button>
+      <button onclick="confirmSaved()" style="margin-top:8px;">✅ حفظت المفتاح - متابعة</button>
     </div>
     <div id="walletInfo" style="display:none">
-      <div style="font-size:13px;color:#666;margin-bottom:6px;">عنوان محفظتك:</div>
+      <div style="font-size:12px;color:#666;margin-bottom:4px;">عنوانك:</div>
       <div class="address-box" id="myAddress"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
         <div>
           <div style="font-size:13px;color:#666;">رصيدك</div>
-          <div style="font-size:28px;font-weight:900;color:#00e5ff;" id="myBalance">0</div>
+          <div style="font-size:32px;font-weight:900;color:#00e5ff;" id="myBalance">0</div>
           <div style="font-size:12px;color:#666;">IQSD</div>
         </div>
-        <button onclick="refreshBalance()" style="width:auto;padding:10px 20px;font-size:13px;">تحديث</button>
+        <button onclick="refreshBalance()" style="width:auto;padding:10px 20px;font-size:13px;">🔄</button>
       </div>
-      <button class="btn-outline" onclick="logout()">تغيير المحفظة</button>
+      <button class="btn-outline" onclick="logout()" style="margin-top:8px;">تغيير المحفظة</button>
     </div>
     <div class="msg" id="walletMsg"></div>
   </div>
+
+  <!-- التعدين -->
   <div class="card" id="miningCard" style="display:none">
     <div class="card-title">⛏️ التعدين</div>
-    <div style="text-align:center;padding:16px;">
+    <div style="text-align:center;padding:12px;">
       <div id="miningStatusText" style="font-size:15px;color:#666;">جاهز للتعدين</div>
       <div class="hash-display" id="hashDisplay">-</div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div style="font-size:13px;color:#666;margin-top:8px;" id="miningSpeed"></div>
+      <div style="font-size:12px;color:#666;margin-top:4px;" id="miningSpeed"></div>
     </div>
     <button id="mineBtn" onclick="toggleMining()">▶ ابدأ التعدين</button>
     <div class="msg" id="miningMsg"></div>
   </div>
+
+  <!-- التحويل -->
   <div class="card" id="transferCard" style="display:none">
     <div class="card-title">💸 تحويل IQSD</div>
-    <input type="text" id="receiverInput" placeholder="عنوان المستلم (IQSD...)" />
-    <input type="number" id="amountInput" placeholder="المبلغ" step="0.0001" min="0" />
-    <div style="font-size:12px;color:#666;margin-bottom:12px;">العمولة: 0.1% للمعدن</div>
-    <button onclick="sendTransfer()">إرسال</button>
+    <input type="text" id="receiverInput" placeholder="عنوان المستلم (IQSD...)" style="font-family:monospace;" />
+    <input type="number" id="amountInput" placeholder="المبلغ" step="0.0001" min="0" style="font-family:Arial;" />
+    <div style="font-size:12px;color:#666;margin-bottom:12px;">العمولة: 0.1% تروح للمعدن</div>
+    <button onclick="sendTransfer()">إرسال ✈️</button>
     <div class="msg" id="transferMsg"></div>
   </div>
+
+  <!-- العقد -->
   <div class="card">
     <div class="card-title">🌐 إضافة عقدة</div>
-    <input type="text" id="peerInput" placeholder="رابط العقدة مثل: http://192.168.1.1:5000" />
+    <input type="text" id="peerInput" placeholder="http://رابط-العقدة:5000" style="font-family:monospace;" />
     <button onclick="addPeer()">اتصال</button>
-    <div id="peersList" style="margin-top:12px;"></div>
+    <div id="peersList" style="margin-top:8px;"></div>
   </div>
+
+  <!-- Metamask -->
   <div class="card">
-    <div class="card-title">🦊 إضافة للمحفظة الخارجية</div>
-    <div style="font-size:13px;color:#666;margin-bottom:16px;">أضف IQSD لـ Metamask أو Trust Wallet:</div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">اسم الشبكة: <span style="color:#00e5ff">IQSD Network</span></div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">RPC URL: <span style="color:#00e5ff" id="rpcUrl">-</span></div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:8px;">Chain ID: <span style="color:#00e5ff">19861</span></div>
-    <div style="font-size:12px;color:#aaa;margin-bottom:16px;">الرمز: <span style="color:#00e5ff">IQSD</span></div>
-    <button class="btn-outline" onclick="copyRpc()">نسخ RPC URL</button>
+    <div class="card-title">🦊 إضافة لـ Metamask</div>
+    <div style="font-size:12px;color:#aaa;line-height:2;">
+      اسم الشبكة: <span style="color:#00e5ff">IQSD Network</span><br>
+      RPC URL: <span style="color:#00e5ff" id="rpcUrl">-</span><br>
+      Chain ID: <span style="color:#00e5ff">19861</span><br>
+      الرمز: <span style="color:#00e5ff">IQSD</span>
+    </div>
+    <button class="btn-outline" onclick="copyRpc()" style="margin-top:12px;">نسخ RPC URL</button>
   </div>
+
 </div>
 <script>
 let myAddress = localStorage.getItem('iqsd_address') || '';
+let myPrivateKey = sessionStorage.getItem('iqsd_pk') || '';
 let mining = false;
 let hashCount = 0;
 let startTime = 0;
+let tempPrivateKey = '';
+let tempPublicKey = '';
 
 window.onload = () => {
   loadStats();
@@ -126,23 +153,56 @@ async function loadStats() {
   } catch(e) {}
 }
 
-async function createWallet() {
-  const pk = document.getElementById('pubkeyInput').value.trim();
-  if (!pk) return showMsg('walletMsg', 'أدخل كلمة سرية!', false);
+// ============================================================
+// المحفظة - مفاتيح ECDSA حقيقية
+// ============================================================
+async function generateWallet() {
   try {
-    const r = await fetch('/api/wallet/create', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({public_key:pk})});
+    const r = await fetch('/api/wallet/generate');
     const d = await r.json();
     if (d.success) {
+      tempPrivateKey = d.private_key;
+      tempPublicKey = d.public_key;
+      document.getElementById('privateKeyDisplay').textContent = d.private_key;
+      document.getElementById('noWallet').style.display = 'none';
+      document.getElementById('newWalletAlert').style.display = 'block';
+      // سجل المحفظة
+      await fetch('/api/wallet/import', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({public_key: d.public_key})
+      });
       myAddress = d.address;
-      localStorage.setItem('iqsd_address', myAddress);
-      showWallet();
-      showMsg('walletMsg', 'تم إنشاء المحفظة!', true);
-    } else showMsg('walletMsg', d.error, false);
+    }
   } catch(e) { showMsg('walletMsg', 'خطأ في الاتصال', false); }
 }
 
+function copyPrivateKey() {
+  navigator.clipboard.writeText(tempPrivateKey);
+  alert('✅ تم نسخ المفتاح الخاص! احفظه في مكان آمن!');
+}
+
+function confirmSaved() {
+  localStorage.setItem('iqsd_address', myAddress);
+  sessionStorage.setItem('iqsd_pk', tempPrivateKey);
+  myPrivateKey = tempPrivateKey;
+  document.getElementById('newWalletAlert').style.display = 'none';
+  showWallet();
+}
+
+async function importWallet() {
+  const key = document.getElementById('importKey').value.trim();
+  if (!key) return showMsg('walletMsg', 'أدخل المفتاح الخاص!', false);
+  try {
+    // استخرج المفتاح العام من الخاص عبر السيرفر
+    // مؤقتاً: نستخدم المفتاح مباشرة
+    showMsg('walletMsg', 'جاري الاستيراد...', true);
+  } catch(e) { showMsg('walletMsg', 'مفتاح غير صحيح', false); }
+}
+
 function showWallet() {
-  document.getElementById('walletSection').style.display = 'none';
+  document.getElementById('noWallet').style.display = 'none';
+  document.getElementById('newWalletAlert').style.display = 'none';
   document.getElementById('walletInfo').style.display = 'block';
   document.getElementById('miningCard').style.display = 'block';
   document.getElementById('transferCard').style.display = 'block';
@@ -160,17 +220,25 @@ async function refreshBalance() {
 }
 
 function logout() {
-  myAddress = '';
+  myAddress = ''; myPrivateKey = '';
   localStorage.removeItem('iqsd_address');
-  document.getElementById('walletSection').style.display = 'block';
+  sessionStorage.removeItem('iqsd_pk');
+  document.getElementById('noWallet').style.display = 'block';
   document.getElementById('walletInfo').style.display = 'none';
   document.getElementById('miningCard').style.display = 'none';
   document.getElementById('transferCard').style.display = 'none';
 }
 
+// ============================================================
+// التعدين
+// ============================================================
 function toggleMining() {
-  if (mining) { mining = false; document.getElementById('mineBtn').textContent = '▶ ابدأ التعدين'; document.getElementById('miningStatusText').style.color='#666'; document.getElementById('miningStatusText').textContent='متوقف'; }
-  else startMining();
+  if (mining) {
+    mining = false;
+    document.getElementById('mineBtn').textContent = '▶ ابدأ التعدين';
+    document.getElementById('miningStatusText').textContent = 'متوقف';
+    document.getElementById('miningStatusText').style.color = '#666';
+  } else startMining();
 }
 
 async function startMining() {
@@ -180,16 +248,16 @@ async function startMining() {
   document.getElementById('miningStatusText').style.color = '#00e5ff';
   try {
     const r = await fetch('/api/mining/challenge');
-    const challenge = await r.json();
-    mineBlock(challenge);
+    const c = await r.json();
+    mineBlock(c);
   } catch(e) { mining=false; showMsg('miningMsg','خطأ في الاتصال',false); }
 }
 
 function simpleHash(str) {
   let h = 5381;
-  for (let i = 0; i < str.length; i++) h = ((h<<5)+h)+str.charCodeAt(i);
-  const hex = (Math.abs(h)>>>0).toString(16).padStart(8,'0');
-  return (hex.repeat(8)).substring(0,64);
+  for (let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i);
+  const hex=(Math.abs(h)>>>0).toString(16).padStart(8,'0');
+  return hex.repeat(8).substring(0,64);
 }
 
 function mineBlock(challenge) {
@@ -203,41 +271,56 @@ function mineBlock(challenge) {
       const hash = simpleHash(prev_hash+nonce+myAddress);
       document.getElementById('hashDisplay').textContent = hash;
       const elapsed = (Date.now()-startTime)/1000;
-      document.getElementById('miningSpeed').textContent = Math.floor(hashCount/elapsed).toLocaleString()+' hash/s';
-      document.getElementById('progressFill').style.width = (100-(parseInt(hash.substring(0,4),16)/65535)*100)+'%';
-      if (hash.startsWith(target)) { submitFoundBlock(nonce,hash,challenge); return; }
+      if (elapsed > 0) document.getElementById('miningSpeed').textContent =
+        Math.floor(hashCount/elapsed).toLocaleString()+' hash/s';
+      document.getElementById('progressFill').style.width =
+        (100-(parseInt(hash.substring(0,4),16)/65535)*100)+'%';
+      if (hash.startsWith(target)) { submitFoundBlock(nonce,hash); return; }
     }
     setTimeout(tryHash,0);
   }
   tryHash();
 }
 
-async function submitFoundBlock(nonce,hash,challenge) {
+async function submitFoundBlock(nonce, hash) {
   try {
-    const r = await fetch('/api/mining/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({miner_address:myAddress,nonce,hash})});
+    const r = await fetch('/api/mining/submit',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({miner_address: myAddress, nonce, hash})
+    });
     const d = await r.json();
     if (d.success) { showMsg('miningMsg','🎉 '+d.message,true); refreshBalance(); }
-    setTimeout(()=>startMining(),1000);
+    setTimeout(()=>{ if(mining) startMining(); },1000);
   } catch(e) {}
 }
 
+// ============================================================
+// التحويل
+// ============================================================
 async function sendTransfer() {
   const receiver = document.getElementById('receiverInput').value.trim();
   const amount = parseFloat(document.getElementById('amountInput').value);
   if (!receiver||!amount) return showMsg('transferMsg','أدخل البيانات كاملة',false);
   try {
-    const r = await fetch('/api/transfer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender:myAddress,receiver,amount})});
+    const r = await fetch('/api/transfer',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sender:myAddress, receiver, amount})
+    });
     const d = await r.json();
-    showMsg('transferMsg',d.success?d.message:d.error,d.success);
+    showMsg('transferMsg', d.success?d.message:d.error, d.success);
     if(d.success) refreshBalance();
   } catch(e) { showMsg('transferMsg','خطأ في الاتصال',false); }
 }
 
+// ============================================================
+// العقد
+// ============================================================
 async function addPeer() {
   const url = document.getElementById('peerInput').value.trim();
   if (!url) return;
   try {
-    await fetch('/api/peer/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    await fetch('/api/peer/register',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
     loadPeers();
     document.getElementById('peerInput').value='';
   } catch(e) {}
@@ -248,7 +331,9 @@ async function loadPeers() {
     const r = await fetch('/api/peer/peers');
     const d = await r.json();
     const list = document.getElementById('peersList');
-    list.innerHTML = d.peers&&d.peers.length ? d.peers.map(p=>`<div class="peer-item">🟢 ${p}</div>`).join('') : '<div style="color:#444;font-size:12px;">لا يوجد عقد متصلة بعد</div>';
+    list.innerHTML = d.peers&&d.peers.length ?
+      d.peers.map(p=>`<div class="peer-item">🟢 ${p}</div>`).join('') :
+      '<div style="color:#333;font-size:12px;">لا يوجد عقد متصلة بعد</div>';
   } catch(e) {}
 }
 
@@ -260,8 +345,10 @@ function copyRpc() {
 function showMsg(id,text,success) {
   const el=document.getElementById(id);
   if(!el)return;
-  el.textContent=text; el.className='msg '+(success?'success':'error'); el.style.display='block';
-  setTimeout(()=>el.style.display='none',4000);
+  el.textContent=text;
+  el.className='msg '+(success?'success':'error');
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',5000);
 }
 </script>
 </body>
